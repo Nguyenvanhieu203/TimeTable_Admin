@@ -34,7 +34,7 @@ function login() {
         localStorage.setItem("fullname",namelogin);
         localStorage.setItem("email",data.email);
         localStorage.setItem("avata",data.avata);
-        if(username == data.email && password == data.password  ) {
+        if(data.status === "Thành công") {
             window.location.href = "main_admin.html";
         }
         else {
@@ -62,10 +62,17 @@ function signin() {
   var genderRadioButtons = document.getElementsByName("gender");
   var genderValue;
   for (var i = 0; i < genderRadioButtons.length; i++) {
-      if (genderRadioButtons[i].checked) {
+        if (genderRadioButtons[i].checked) {
           var selectedGender = genderRadioButtons[i].value;
           genderValue = (selectedGender === "Nam") ? "1" : "0";
-      }
+        }
+  }
+  let typeAccount = document.getElementById("type__account").value;
+  if(typeAccount === 1){
+    typeAccount = "CH";
+  }
+  else {
+    typeAccount = "TG";
   }
   const numberphone = document.getElementById("phonenumber").value;
   var avata = document.getElementById("avata").value;
@@ -86,6 +93,7 @@ function signin() {
         phoneNumber: numberphone,
         password: password,
         confirmPassword: confirmpassword,
+        typeAccount: typeAccount,
         gender: genderValue,
         dateOfBirth: dateofbirth,
         avata: avata
@@ -483,6 +491,7 @@ function displayDataAndPaginationManagerAccount(data, currentPage) {
                 <th>Họ tên</th>
                 <th>Email</th>
                 <th>Số điện thoại</th>
+                <th>Giảng viên</th>
                 <th>Ngày sinh</th>
                 <th>Giới tính</th>
                 <th>Trạng thái</th>
@@ -513,6 +522,7 @@ function displayDataAndPaginationManagerAccount(data, currentPage) {
             <td>${item.fullName}</td>
             <td>${item.email}</td>
             <td>0${item.phone}</td>
+            <td>${item.type === "TG"?"Thỉnh giảng" : "Cơ hữu"}</td>
             <td>${formattedDate}</td>
             <td>${item.gender === 1 ? "Nam" : "Nữ"}</td>
             <td>${item.usedState === 0 ? "Đang mở" : "Tạm khóa"}</td>
@@ -922,6 +932,7 @@ function AdminChangeInforUser() {
             alert("Sửa thành công");
             if(ShowAdminChangeUser.style.display === "block") ShowAdminChangeUser.style.display = "none";
             else ShowAdminChangeUser.style.display = "none";
+            GetAllSearchAccountForSchedule(1);
         }
         else {
             alert("Sửa không thành công")
@@ -950,10 +961,9 @@ function AdminDeleteUser(id) {
         })
         .then((data) => {
             localStorage.removeItem("IdUser");
-            console.log(data);
             if(data.statusCode === 200) {
                 alert(data.result);
-                GetManagerAccount();
+                GetAllSearchAccountForSchedule(1);
             }
             else {
                 alert("Sửa không thành công")
@@ -986,6 +996,7 @@ function AdminLockAccount(id) {
                 localStorage.removeItem("IdUser");
                 if(data.statusCode === 200) {
                     alert("Khóa tài khoản thành công");
+                    GetAllSearchAccountForSchedule(1);
                 }
                 else {
                     alert("Sửa không thành công")
@@ -1023,6 +1034,44 @@ function AdminUnLockAccount(id) {
                 console.log(data);
                 if(data.statusCode === 200) {
                     alert("Mở khóa tài khoản thành công");
+                    GetAllSearchAccountForSchedule(1);
+                }
+                else {
+                    alert("Sửa không thành công")
+                }
+            
+            })
+            .catch((error) => {
+            // Xử lý lỗi
+            console.error(error);
+        });
+    }
+    else {
+        alert("Hành động đã bị hủy");
+    }
+}
+
+function AdminLockAccountType(typeAccount, usedState) {
+    const changeInforUrl = "https://localhost:7013/api/UserManager/LoclAccount";
+    var isConfirmed = confirm("Bạn có chắc chắn muốn khóa tài khoản này này?");
+    if(isConfirmed) {
+        fetch(`${changeInforUrl}?TypeAccount=${typeAccount}&UsedStated=${usedState}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json", // Đặt Content-Type tùy theo yêu cầu của API
+            },
+            })
+            .then((response) => {
+            if (!response.ok) {
+                throw new Error("Lỗi khi gọi API");
+            }
+            return response.json();
+            })
+            .then((data) => {
+                localStorage.removeItem("IdUser");
+                if(data.statusCode === 200) {
+                    alert("Khóa tài khoản thành công");
+                    GetAllSearchAccountForSchedule(1);
                 }
                 else {
                     alert("Sửa không thành công")
@@ -1412,10 +1461,6 @@ function updateDataClass(id,token){
     }), 
     })
     .then((result) => {
-        console.log(newName);
-        console.log(formattedDate);
-        console.log(newCourse);
-        console.log(newDesc);
         if (!result.ok) {
         throw new Error('Lỗi khi gọi API');
         }
@@ -2099,15 +2144,49 @@ async function fetchApiWithPageNumberSearchClassRoom(pageNumber, nameClassRoomSe
 let dataLoaded__AllSchedules = false;
 let tableBody__AllSchedules = null; 
 let pageIndexAllSchedules = 1;
+
+let dataLoaded__searchRegisted = false;
+let tableBody__searchRegisted = null; 
+let pageIndexSearchAccountRegisted = 1;
 async function GetAllScheduleClass(pageIndex) {
 
+    const search = document.getElementById("seach_name_Schedule").value;
     // Gọi API ban đầu với số trang pageIndex
-    if (!dataLoaded__AllSchedules) {
-        await fetchApiWithPageNumberManagerScheduleClass(pageIndex);
-        dataLoaded__AllSchedules = true;
+    if(search === "") {
+        if (!dataLoaded__AllSchedules) {
+            await fetchApiWithPageNumberManagerScheduleClass(pageIndex);
+            dataLoaded__AllSchedules = true;
+        }
+        else {
+            await fetchApiWithPageNumberManagerScheduleClass(pageIndex);
+        }
     }
     else {
-        await fetchApiWithPageNumberManagerScheduleClass(pageIndex);
+        if (!dataLoaded__searchRegisted) {
+            await fetchApiWithPageNumberManagerScheduleById(pageIndex, search);
+            dataLoaded__searchRegisted = true;
+        }
+        else {
+            await fetchApiWithPageNumberManagerScheduleById(pageIndex, search);
+        }
+    }
+}
+
+
+async function fetchApiWithPageNumberManagerScheduleById(pageNumber, search) {
+    
+    try {
+        const response = await fetch(`https://localhost:7013/api/Lecture_ScheduleManager/Name?name=${search}&pageIndex=${pageNumber}&pageSize=${5}`, {
+            method: 'GET',
+            headers: {
+              accept: 'application/json',
+            },
+        });
+        const data = await response.json();
+        displayDataAndPaginationManagerScheduleClass(data, pageNumber);
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        alert(error);
     }
 }
 
@@ -3154,9 +3233,6 @@ function Lecture_Schedule() {
     const changeInforUrl = "https://localhost:7013/api/Lecture_ScheduleManager/Scheduling";
     const dateStart = document.getElementById("startDate").value; 
     const dateEnd = document.getElementById("endDate").value; 
-    console.log(selectedClass);
-    console.log(selectedClassRoom);
-    console.log(selectedSubject);
     if(selectedClass.length === 0 ) {
         alert("Bạn chưa chọn lớp học!");
     }
@@ -3774,6 +3850,7 @@ function AdminChangeSubject() {
             alert("Sửa thành công");
             if(ShowAdminChangeUser.style.display === "block") ShowAdminChangeUser.style.display = "none";
             else ShowAdminChangeUser.style.display = "none";
+            GetAllSearchSubjectForSchedule(1);
         }
         else {
             alert("Sửa không thành công")
@@ -3802,7 +3879,6 @@ function AdminDeleteSubject(id) {
             return response.json();
             })
             .then((data) => {
-                console.log(data);
                 if(data.statusCode === 200) {
                     alert(data.result);
                     GetAllSearchSubjectForSchedule(1);
@@ -3861,7 +3937,6 @@ function AdminAddSubject() {
     return response.json();
     })
     .then((data) => {
-        console.log(data);
         if(data.statusCode === 200) {
             alert("Thêm thành công");
             if(ShowAdminChangeUser.style.display === "block") ShowAdminChangeUser.style.display = "none";

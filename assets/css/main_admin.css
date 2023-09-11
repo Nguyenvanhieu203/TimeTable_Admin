@@ -848,3 +848,24 @@ td .classRoom_delete_button{
 #close__admin--add__subject:hover {
     color: #ccc;
 }
+
+
+.btn__manager--account div:nth-child(2)  button {
+    background-color: #00C4CC;
+    color: #fff;
+    padding: 10px 6px;
+    margin: 10px 10px;
+    cursor: pointer;
+}
+
+.btn__manager--account div:nth-child(1)  button {
+    background-color: red;
+    color: #fff;
+    padding: 10px 6px;
+    margin: 10px 10px;
+    cursor: pointer;
+}
+
+.btn__manager--account div button:hover {
+    opacity: 0.6;
+}
